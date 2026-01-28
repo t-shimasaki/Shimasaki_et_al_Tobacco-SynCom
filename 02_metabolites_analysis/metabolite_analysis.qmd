@@ -1,0 +1,247 @@
+---
+title: "chromatogram of nicotine degradation analysis"
+subtitle: "Shimasai et al. Nicotine SynComs"
+author: "Tomohisa Shimasaki"
+format:
+  html: default
+  pdf: default
+---
+
+```{r setup, include=FALSE}
+# Global setup
+rm(list = ls())
+options(warn = -1)
+
+library(stringr,   quietly=T, warn.conflicts=F)
+library(ggplot2,   quietly=T, warn.conflicts=F)
+library(reshape2,  quietly=T, warn.conflicts=F)
+library(dplyr,     quietly=T, warn.conflicts=F)
+library(tidyverse, quietly=T, warn.conflicts=F)
+library(readxl,    quietly=T, warn.conflicts=F)
+```
+
+# Paths
+
+```{r paths}
+data_dir    <- "/Users/tomohisa/Desktop/Shimasaki_et_al_2026/02_metabolites_analysis/input/"
+fig_dir     <- "/Users/tomohisa/Desktop/Shimasaki_et_al_2026/02_metabolites_analysis/output/"
+```
+
+# Load Data
+
+```{r load-data}
+conjugation     <- read_excel(file.path(data_dir, "chromatogram_data_conjugation.xlsx"))
+individual      <- read_excel(file.path(data_dir, "chromatogram_data_SymCom_members.xlsx"))
+SynCom          <- read_excel(file.path(data_dir, "chromatogram_data_SymComs.xlsx"))
+```
+
+# 1. Congugation 
+## Data formatting
+```{r}
+tab_conju   <-  melt(
+  conjugation[conjugation$Time>4 & conjugation$Time<8,],
+  id.vars = "Time"
+)
+
+tab_conju$variable    <-  factor(tab_conju$variable,
+                                 levels = c("Control",
+                                            "NtRootA2",
+                                            "StoSoilB3",
+                                            "StoSoilB3::pNtRootA2-2"))
+```
+
+## Plot data
+```{r}
+p1 <- ggplot(tab_conju, aes(x = Time, y = value)) +
+  geom_line(linewidth = 0.8) +
+  facet_grid(variable ~ ., switch = "y") +
+  scale_y_continuous(
+    limits = c(-5000000, 60000000),
+    sec.axis = dup_axis()
+  ) +
+  theme_classic() +
+  theme(
+    strip.placement = "outside",
+    strip.background = element_blank(),
+    strip.text.y.left = element_text(size = 11, angle = 90),
+
+    axis.title.y = element_blank(),
+    axis.text.y  = element_blank(),
+    axis.ticks.y.left  = element_blank(),
+    axis.line.y.left   = element_blank(),
+    axis.ticks.y.right = element_line(),
+
+    axis.text.x = element_text(size = 10),
+
+    text = element_text(size = 11)
+  )
+
+p1
+```
+
+## Save plot
+```{r}
+ggsave(p1, file=paste(fig_dir, "degradation_conjugation.pdf", sep=""), width=8, height=4, bg="transparent")
+```
+
+# 2. Arthrobacter degradation
+##  Data formatting
+```{r}
+Art    <-  melt(
+  individual[individual$Time > 2 & individual$Time < 10,
+           c("Time", "Control", "NtRootA2", "NtRootA2 (ΔndhL)", "NtRootA2 (VC)")],
+  id.vars = "Time"
+)
+```
+
+## plot data
+```{r}
+p2 <- ggplot(Art,  aes(x = Time, y = value, color = variable)
+) +
+  geom_line(size = 1) +
+  facet_grid(variable ~ .) +
+  scale_y_continuous(
+    limits = c(-5000000, 60000000),
+    sec.axis = dup_axis()   
+  ) +
+  scale_color_manual(values = c("black", "#008B8B", "#6B8E23", "#EE6363")) +
+  theme_classic() +
+  labs(x="Time (min)", y="") +
+  theme(
+    axis.title.y        = element_blank(),
+    axis.text.y         = element_blank(),
+    axis.text.x         = element_text(size = 12),
+    axis.title.x        = element_text(size = 15),
+    axis.ticks.y.left   = element_blank(),
+    axis.line.y.left    = element_blank(),
+    axis.ticks.y.right  = element_line(),
+    axis.line.y.right   = element_line(),
+    legend.position = "right",
+    
+    strip.text          = element_blank(),
+    strip.background    = element_blank(),
+    
+    text = element_text(size = 11)
+  )
+
+p2
+```
+
+## Save plot
+```{r}
+ggsave(p2, file=paste(fig_dir, "degradation_arthro.pdf", sep=""), width=8, height=4, bg="transparent")
+```
+
+# 3. SynCom members
+## Data formatting
+```{r}
+tab_mSynCom   <-  melt(
+  individual[individual$Time>0 & individual$Time<10,],
+  id.vars = "Time"
+)
+
+tab_mSynCom$variable    <-  factor(tab_mSynCom$variable,
+                                  levels = c("Control", "NtRootA2", "NtRootA2 (ΔndhL)", "NtRootA2 (VC)",
+                                             "NtRootA21", "NtRootA29", "NtRootA43", "NtRootB41",
+                                             "NtRootC10", "NtRootD30", "NtRootD41", "NtRootF03",
+                                             "NtRootF08", "NtRootF10"))
+```
+
+## Plot data
+```{r}
+p3 <- ggplot(tab_mSynCom, aes(x = Time, y = value)) +
+  geom_line(linewidth = 0.8) +
+  facet_grid(variable ~ ., switch = "y") +
+  scale_y_continuous(
+    limits = c(-5000000, 60000000)
+  ) +
+  theme_classic() +
+  theme(
+    strip.placement = "outside",
+    strip.background = element_blank(),
+    strip.text.y.left = element_text(size = 5, angle = 90),
+
+    axis.title.y = element_blank(),
+    axis.text.y  = element_blank(),
+    axis.ticks.y.left = element_line(),
+    axis.line.y.left  = element_line(),
+
+    axis.text.y.right  = element_blank(),
+    axis.ticks.y.right = element_blank(),
+    axis.line.y.right  = element_blank(),
+
+    axis.text.x = element_text(size = 10),
+
+    text = element_text(size = 11)
+  )
+
+p3
+```
+
+## Save plot
+```{r}
+ggsave(p3, file=paste(fig_dir, "degradation_SynCom_members.pdf", sep=""), width=8, height=12, bg="transparent")
+```
+
+# 4. Degradation SynComs
+## Data formatting
+```{r}
+tab_SynCom    <-  melt(SynCom,id.vars = "time")
+
+
+tab_SynCom <- tab_SynCom %>%
+  group_by(variable) %>%
+  slice(seq(1, n(), by = 3)) %>%
+  ungroup()
+
+
+tab_SynCom <- tab_SynCom %>%
+  mutate(
+    time  = suppressWarnings(as.numeric(time)),
+    value = suppressWarnings(as.numeric(value)),
+    variable = as.factor(variable)
+  ) %>%
+  arrange(variable, time)
+
+tab_SynCom <- tab_SynCom %>% filter(!is.na(time), !is.na(value))
+
+tab_SynCom <- tab_SynCom %>%
+  group_by(variable) %>%
+  slice(seq(1, n(), by = 3)) %>%  
+  ungroup()
+```
+
+## Plot data
+```{r}
+p4 <- ggplot(tab_SynCom[tab_SynCom$time>0.75&tab_SynCom$time<1.25,], 
+             aes(x = time, y = value, color=variable)) + 
+      geom_line(size=1) +
+      scale_color_manual(values=c("black", "#008B8B", "#6B8E23", "#EE6363")) +
+      facet_grid(variable ~ .) +
+      scale_y_continuous(limits=c(-100000,800000),     sec.axis = dup_axis())+
+      labs(x="Time (min)", y="") +
+  theme_classic() +
+  theme(
+    axis.title.y        = element_blank(),
+    axis.text.y         = element_blank(),
+    axis.text.x         = element_text(size = 12),
+    axis.title.x        = element_text(size = 15),
+    axis.ticks.y.left   = element_blank(),
+    axis.line.y.left    = element_blank(),
+    axis.ticks.y.right  = element_line(),
+    axis.line.y.right   = element_line(),
+    legend.position = "right",
+    
+    strip.text          = element_blank(),
+    strip.background    = element_blank(),
+    
+    text = element_text(size = 11)
+  )
+
+p4
+```
+
+## Save plot
+```{r}
+ggsave(p4, file=paste(fig_dir, "degradation_SynComs.pdf", sep=""), width=8, height=12, bg="transparent")
+```
