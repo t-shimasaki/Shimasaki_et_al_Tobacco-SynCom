@@ -1,0 +1,363 @@
+---
+title: "Community analyisis for SynCom inoculation"
+subtitle: "Shimasai et al. Nicotine SynComs"
+author: "Tomohisa Shimasaki"
+format:
+  html: default
+  pdf: default
+---
+
+# Setup
+```{r setup}
+# Global setup
+rm(list = ls())
+options(warn = -1)
+
+library(ggplot2, quietly = T, warn.conflicts = F)
+library(dplyr, quietly = T, warn.conflicts = F)
+library(tidyverse, quietly = T, warn.conflicts = F)
+library(readxl, quietly = T, warn.conflicts = F)
+library(here, quietly = T, warn.conflicts = F)
+library(effectsize, quietly = T, warn.conflicts = F)
+library(stringr,   quietly=T, warn.conflicts=F)
+library(reshape2,  quietly=T, warn.conflicts=F)
+library(scales,      quietly=T, warn.conflicts=F)
+library(compositions,      quietly=T, warn.conflicts=F)
+library(multcomp,      quietly=T, warn.conflicts=F)
+library(vegan,      quietly=T, warn.conflicts=F)
+library(tibble)
+library(patchwork)
+library(ggtext)
+```
+
+# Path
+```{r path}
+data_dir <- here("07_SynCom_community_analysis", "input")
+fig_dir <- here("07_SynCom_community_analysis", "output")
+```
+
+# Load Data
+```{r load-data}
+comp <- read_excel(file.path(data_dir, "level-6.xlsx"))
+comp <- comp |>
+  column_to_rownames(colnames(comp)[1])
+Unifrac   <- read_excel(file.path(data_dir, "distance-matrix.xlsx"))
+Unifrac <- Unifrac |>
+  column_to_rownames(colnames(Unifrac)[1])
+meta <- read_excel(file.path(data_dir, "metadata.xlsx"))
+```
+
+# Visualization of Taxonomic Composition
+## Data formatting
+```{r}
+rel <- apply(comp, 1, function(x) x/sum(x)*100)
+rel <-   melt(rel)
+rel  <- left_join(rel , meta , by=c("Var2" = "SampleID"))
+```
+
+## label formatting
+```{r}
+rel$SynCom <- recode(rel$SynCom,
+                        "Control" = "conSC",
+                        "ndhL"    = "ndhLSC",
+                        "WT"      = "wildSC")
+
+rel$GenoType <- recode(rel$GenoType,
+                     "WT" = "wild-type",
+                     "ERF"    = "erf189/erf199")
+
+rel$Var1 <- recode(rel$Var1,
+                       "Rhizobium" = "Agrobacterium",
+                       "Paenarthrobacter"    = "Arthrobacter")
+
+rel$SynCom     <- factor(rel$SynCom, levels=c("wildSC","ndhLSC", "conSC"))
+
+
+rel$GenoType    <- factor(rel$GenoType, levels=c("wild-type", "erf189/erf199"))
+
+meta$GP     <-  paste(meta$GenoType, meta$PhenoType, sep="_")
+
+```
+
+## color palette ggplot factor setup
+```{r}
+genera <- c("Agrobacterium",　"Sphingobium",　"Variovorax",　"Pseudomonas",　"Xanthomonas", "Chryseobacterium",　"Dyadobacter",　"Microbacterium", "Arthrobacter", "Streptomyces")
+
+colors <- c("#a7cae1", "#7095b9", "#cee8f0", "#b7e2ff", "#66a4b9", 
+            "#ffc995", "#e4d2ba", "#d2f5d2","#66b98f", "#a6bb7b")
+
+
+df <- data.frame(Genus = genera, Color = colors, stringsAsFactors = FALSE)
+pal <- setNames(df$Color, df$Genus)
+
+
+pal["Arthrobacter_WT_WT"]   <- "#008B8B"
+  pal["Arthrobacter_WT_ndhL"] <- "#6B8E23"
+    pal["Arthrobacter_WT_Con"]  <- "#EE6363"
+      pal["Arthrobacter_ERF_WT"]   <- "#008B8B"
+        pal["Arthrobacter_ERF_ndhL"] <- "#6B8E23"
+          pal["Arthrobacter_ERF_Con"]  <- "#EE6363"
+      
+
+    rel <- rel %>%
+      mutate(
+        Fill = case_when(
+          Var1 == "Arthrobacter" & Sample == "WT_WT"   ~ "Arthrobacter_WT_WT",
+          Var1 == "Arthrobacter" & Sample == "WT_ndhL" ~ "Arthrobacter_WT_ndhL",
+          Var1 == "Arthrobacter" & Sample == "WT_Con"  ~ "Arthrobacter_WT_Con",
+          Var1 == "Arthrobacter" & Sample == "ERF_WT"   ~ "Arthrobacter_ERF_WT",
+          Var1 == "Arthrobacter" & Sample == "ERF_ndhL" ~ "Arthrobacter_ERF_ndhL",
+          Var1 == "Arthrobacter" & Sample == "ERF_Con"  ~ "Arthrobacter_ERF_Con",
+          TRUE ~ as.character(Var1)
+        )
+      )
+
+rel$Sample      <- factor(rel$Sample , levels=c("WT_WT", "WT_ndhL", "WT_Con", "ERF_WT", "ERF_ndhL", "ERF_Con"))
+rel$Fill        <- factor(rel$Fill , levels=names(pal))
+```
+
+## Plot data (wild-type)
+```{r}
+p1 <- ggplot(rel[rel$GenoType=="wild-type",], aes(x = rep, y = value, fill = Fill)) +
+      geom_bar(stat = "identity", position = "fill") +
+      facet_grid( ~ Sample) +
+      scale_fill_manual(
+        values = pal,
+        # 凡例は元の菌属名のみを表示
+        breaks = names(pal)[names(pal) %in% df$Genus]
+      ) +
+      theme_minimal(base_size = 14) +
+      scale_y_continuous(labels = percent, expand = c(0, 0)) +
+      theme(
+        axis.text.x = element_text(colour = "black", size = 10, angle = 90, vjust = 0.5, hjust = 1),
+        axis.text.y = element_text(colour = "black", size = 10),
+        strip.text  = element_text(colour = "black", size = 10),
+        legend.title= element_text(size = 9)
+      ) +
+      labs(x = "", y = "Relative abundance", fill = "Genus")
+    
+p1
+```
+
+## Save plot
+```{r}
+ggsave(p1, file = paste(fig_dir, "SynCom_barplot_WT.pdf", sep = "/"), width = 10, height = 4, bg = "transparent")
+```
+
+## Plot data (ERF189/199)
+```{r}
+p2 <- ggplot(rel[rel$GenoType=="erf189/erf199",], aes(x = rep, y = value, fill = Fill)) +
+      geom_bar(stat = "identity", position = "fill") +
+      facet_grid(~ Sample) +
+      scale_fill_manual(
+        values = pal,
+        # 凡例は元の菌属名のみを表示
+        breaks = names(pal)[names(pal) %in% df$Genus]
+      ) +
+      theme_minimal(base_size = 14) +
+      scale_y_continuous(labels = percent, expand = c(0, 0)) +
+      theme(
+        axis.text.x = element_text(colour = "black", size = 10, angle = 90, vjust = 0.5, hjust = 1),
+        axis.text.y = element_text(colour = "black", size = 10),
+        strip.text  = element_text(colour = "black", size = 10),
+        legend.title= element_text(size = 9)
+      ) +
+      labs(x = "", y = "Relative abundance", fill = "Genus")
+    
+p2
+```
+
+## Save plot
+```{r}
+ggsave(p2, file = paste(fig_dir, "SynCom_barplot_ERF.pdf", sep = "/"), width = 10, height = 4, bg = "transparent")
+```
+
+## Data plot (individual strains)
+```{r, fig.width=14, fig.height=18, dpi=300, out.width="100%", fig.align="center"}
+colors <- data.frame(SynCom=c("WT_WT", "WT_ndhL", "WT_Con", "ERF_WT", "ERF_ndhL", "ERF_Con"),
+                     color=c("#008B8B", "#6B8E23",  "#EE6363", "#6CA6CD", "#8FBC8F", "#EEA9B8"))
+
+plot_var <- function(v){
+  rel_sub <- rel[rel$Var1 == v, ]
+  
+  ggplot(rel_sub,
+         aes(x = SynCom, y = value, fill = Sample)) +
+    geom_boxplot(outlier.colour = NA) +
+    geom_point(aes(shape = Trial, group = Sample),
+               position = position_jitterdodge(),
+               alpha = 0.8, width = 0.2, size = 1.5) +
+    scale_y_continuous(
+      limits = c(
+        0,
+        max(rel_sub$value, na.rm = TRUE) + 10)) +
+    facet_grid(. ~ GenoType) +
+    scale_fill_manual(values = colors$color) +
+    labs(y = "Relative abundance (%)") +
+
+    ggtitle(v) +
+    
+    theme_classic(base_size = 15) +
+    theme(
+      plot.title = element_textbox(
+        size = 22, face = "bold", 
+        margin = margin(b = 8),
+        halign = 0.5,
+        box.color = NA  
+      ),
+      
+      
+      axis.text.x = element_text(size = 16, angle = 90, hjust = 1, vjust = 0.5),
+      axis.text.y = element_text(size = 12),
+      axis.title.x = element_blank(),  
+      axis.title.y = element_text(size = 22),
+      
+      strip.text.x = element_text(size = 18, face = "bold"),
+      legend.position = "none",
+      aspect.ratio=1.5
+    )
+}
+
+plots <- lapply(unique(rel$Var1), plot_var)
+
+p3 <- wrap_plots(plots, nrow = 4)
+p3
+```
+
+## Save plot
+```{r}
+ggsave(p3, file = paste(fig_dir, "SynCom_boxplot_individual.pdf", sep = "/"), width = 16, height = 20, bg = "transparent")
+```
+
+# β diversity analysis
+##　Distance-based redundancy analysis and permutation test
+```{r}
+idx   <- match(meta$SampleID, colnames(Unifrac))
+Unifrac     <- Unifrac[idx,idx]
+
+cap.full <- capscale(
+  t(Unifrac) ~ SynCom * GenoType,
+  data = meta,
+  distance = "unifrac",
+  sqrt.dist = TRUE,
+  add = FALSE
+)
+
+perm_anova.gen <- anova.cca(cap.full)
+print(perm_anova.gen)
+```
+
+## Extract CAP ordination scores and compute group centroids
+```{r}
+points <- cap.full$CCA$wa[,1:2]
+points <- as.data.frame(points)
+colnames(points) <- c("PC1", "PC2")
+points <- cbind(points, meta[match(rownames(points), meta$SampleID),])
+eig <- cap.full$CCA$eig
+print(eig)
+
+points$Sample      <- factor(points$Sample, levels=colors$SynCom)
+
+group_means <- points %>%
+  group_by(Sample) %>%
+  summarise(center_x = mean(PC1), center_y = mean(PC2))
+
+data_with_centroids <- points %>%
+  left_join(group_means, by = "Sample") 
+```
+
+## Plot data
+```{r}
+p4 <- ggplot(data_with_centroids, aes(x = PC1, y = PC2, shape=GenoType)) +
+  geom_point(aes(fill = Sample), size=2, alpha = 0.5, color="black") +
+  geom_segment(aes(xend = center_x, yend = center_y, group = Sample, color=Sample), 
+               linetype = "solid") +
+  geom_point(data = data_with_centroids, aes(x = center_x, y = center_y, fill = Sample), size = 4) + 
+  scale_fill_manual(values = colors$color) +
+  scale_color_manual(values = colors$color) +
+  scale_shape_manual(values = c(22, 21)) +
+  labs(x= "CAP1 (20.6%)", y = "CAP2 (3.8%)") +
+  guides(fill = guide_legend(override.aes = list(size=8))) +
+  theme_classic(base_size = 15) +
+  theme(axis.ticks=element_line(colour = "black"), 
+        axis.text.x =element_text(size= 12, colour = "black"),
+        axis.text.y =element_text(size= 12, colour = "black"),
+        axis.title.x = element_text(size= 15, colour = "black"),
+        axis.title.y = element_text(size= 15, colour = "black"),
+        legend.position = "right",
+        panel.border = element_rect(fill = NA, size=1), 
+        aspect.ratio=1) +
+  coord_fixed() 
+p4
+```
+
+## Save plot
+```{r}
+ggsave(p4, file = paste(fig_dir, "SynCom_CAP_ordination.pdf", sep = "/"), width = 6, height = 5, bg = "transparent")
+```
+
+## Permutation test
+```{r}
+permanova_result <- adonis2(
+  Unifrac ~ GenoType * PhenoType,
+  data = meta,
+  permutations = 999
+)
+print(permanova_result)
+```
+
+# Unifrac distance comparison
+## Data formatting
+```{r}
+Uni_m <- Unifrac |>
+  as.data.frame() |>
+  rownames_to_column("ID1") |>
+  melt(id.vars = "ID1", variable.name = "ID2", value.name = "unifrac")
+
+idx_a                <- match(Uni_m$ID1, meta$SampleID)
+idx_b                <- match(Uni_m$ID2, meta$SampleID)
+Uni_m$Sample1            <- meta$Sample[idx_a]
+Uni_m$Sample2            <- meta$Sample[idx_b]
+Uni_m$ID             <- paste(Uni_m$Sample2, Uni_m$Sample1, sep="-" )
+
+
+Uni_select           <- Uni_m[Uni_m$ID%in%c("WT_WT-ERF_WT", "WT_ndhL-ERF_WT"),]  
+idx   <-  match(Uni_select$ID1, meta$SampleID)
+Uni_select   <-  cbind(Uni_select, meta[idx,])
+```
+
+## Plot data
+```{r}
+p5    <- ggplot(Uni_select, aes(x=ID, y=unifrac, fill=ID)) +
+  geom_boxplot(outlier.shape=NA, position=position_dodge()) +
+  geom_jitter(size=1.2, position=position_jitter(width=0.15), alpha=0.5) +
+  scale_y_continuous(limits = c(0, 0.1)) +
+  scale_x_discrete(limits=c("WT_WT-ERF_WT", "WT_ndhL-ERF_WT")) +
+  scale_fill_manual(values = c("#6B8E23", "#008B8B")) +
+  theme_classic(base_size = 20) +
+  theme(axis.ticks=element_line(colour = "black"), 
+        axis.text.x =element_blank(),
+        axis.text.y =element_text(size= 15, colour = "black"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size= 18, colour = "black"),
+        legend.position = "top",
+        legend.text = element_text(size= 8, colour = "black"),
+        
+        aspect.ratio=0.6) +
+  ylab("Weighted UniFrac distance")
+
+p5
+```
+
+## Save plot
+```{r}
+ggsave(p5, file = paste(fig_dir, "SynCom_distance_compariosn.pdf", sep = "/"), width = 5, height = 5, bg = "transparent")
+```
+
+## t-test
+```{r}
+t  <-    t.test(x=Uni_select$unifrac[Uni_select$ID=="WT_WT-ERF_WT"],
+                y=Uni_select$unifrac[Uni_select$ID=="WT_ndhL-ERF_WT"],
+                ,var.equal=T,paired=F)
+print(t)
+```
+

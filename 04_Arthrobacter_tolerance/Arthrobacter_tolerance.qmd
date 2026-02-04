@@ -1,0 +1,289 @@
+---
+title: "Arthrobacyter tolerance to nicotine"
+subtitle: "Shimasai et al. Nicotine SynComs"
+author: "Tomohisa Shimasaki"
+format:
+  html: default
+  pdf: default
+---
+
+# Setup
+```{r setup}
+# Global setup
+rm(list = ls())
+options(warn = -1)
+
+library(stringr, quietly = T, warn.conflicts = F)
+library(ggplot2, quietly = T, warn.conflicts = F)
+library(reshape2, quietly = T, warn.conflicts = F)
+library(dplyr, quietly = T, warn.conflicts = F)
+library(tidyverse, quietly = T, warn.conflicts = F)
+library(readxl, quietly = T, warn.conflicts = F)
+library(here, quietly = T, warn.conflicts = F)
+library(showtext, quietly = T, warn.conflicts = F)
+library(multcomp, quietly = T, warn.conflicts = F)
+library(bayestestR, quietly = T, warn.conflicts = F)
+```
+
+# Path
+```{r path}
+data_dir <- here("04_Arthrobacter_tolerance", "input")
+fig_dir <- here("04_Arthrobacter_tolerance", "output")
+```
+
+# Load Data
+```{r load-data}
+tab <- read_excel(file.path(data_dir, "Arthrobacter_nicotine_tolerance.xlsx"))
+meta <- read_excel(file.path(data_dir, "sample_list.xlsx"))
+```
+
+#1. Growth curve
+## Data formatting
+```{r}
+tab_melt <- melt(tab, id = ("Time"))
+tab_melt$Time <- (tab_melt$Time + 0.01) / 60 / 60
+
+idx <- match(tab_melt$variable, meta$Cell)
+tab <- cbind(tab_melt, meta[idx, -1])
+tab$Type <- paste(tab$Bacteria, tab$treatment, sep = "_")
+tab <- na.omit(tab)
+
+# calculating blank average
+blank_sum <- tab[tab$treatment == "blank", ] %>%
+  group_by(Time) %>%
+  summarize(
+    mean = mean(value),
+    sd = sd(value)
+  )
+
+# substracting blank average from all data points
+idx <- match(tab$Time, blank_sum$Time)
+tab$value <- tab$value - blank_sum$mean[idx]
+```
+
+## Plot all growth curves
+```{r}
+p1 <- ggplot(tab, aes(x = Time, y = value)) +
+  geom_point(size = 0.8, alpha = 0.5) +
+  geom_line(size = 1.2, alpha = 1) +
+  facet_grid(Column ~ Row) +
+  theme_gray() +
+  theme(
+    axis.text.x = element_text(size = 5, color = "black"),
+    axis.text.y = element_text(size = 12, color = "black"),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    strip.text.x = element_text(size = 18)
+  ) +
+  labs(x = "Time (hours)", y = expression(
+    {
+      OD[600]
+    },
+    sep = ""
+  ))
+
+p1
+```
+
+## Eluminateing contaminated cells and calculating average for all treatments
+```{r}
+tab <- tab[!tab$variable %in% c("D07", "E05"), ]
+
+Tab_sum <- tab %>%
+  group_by(Type, Time) %>%
+  summarize(
+    mean = mean(value),
+    sd = sd(value)
+  )
+
+idx <- match(Tab_sum$Type, tab$Type)
+Tab_sum$treatment <- tab$treatment[idx]
+Tab_sum$Bacteria <- tab$Bacteria[idx]
+```
+
+## Merge results with metadata
+```{r}
+Tab_sum$Bacteria <-
+  factor(Tab_sum$Bacteria, levels = c("wild-type", "ΔndhL", "VC"))
+Tab_sum$treatment <-
+  factor(Tab_sum$treatment, levels = c("High", "Medium", "Low", "Control"))
+Tab_sum <- na.omit(Tab_sum)
+```
+
+## Plot data
+```{r}
+p2 <-
+  ggplot(Tab_sum[Tab_sum$Time < 24 &
+    Tab_sum$Time > 1, ], aes(
+    x = Time,
+    y = mean,
+    group = Type,
+    color = treatment
+  )) +
+  # geom_point(size=0.8, alpha=0.5) +
+  geom_line(size = 1, alpha = 1) +
+  geom_errorbar(aes(ymax = mean + sd, ymin = mean - sd),
+    width = 0.1,
+    alpha = 0.2
+  ) +
+  scale_color_manual(values = c("#4A708B", "#5F9EA0", "#00F5FF", "#D2691E")) +
+  facet_grid(. ~ Bacteria) +
+  theme_gray() +
+  theme(
+    axis.text.x = element_text(size = 15, color = "black"),
+    axis.text.y = element_text(size = 15, color = "black"),
+    axis.title.x = element_text(size = 15),
+    axis.title.y = element_text(size = 15),
+    strip.text.x = element_text(size = 18),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12)
+  ) +
+  labs(x = "Time (hours)", y = expression(
+    {
+      OD[600]
+    },
+    sep = ""
+  ))
+
+p2
+```
+
+## Save plot
+```{r}
+ggsave(p2, file = paste(fig_dir, "Growth_curve.pdf", sep = "/"), width = 12, height = 4, bg = "transparent")
+```
+
+
+# 2. ARE analysis
+## Data formatting
+```{r}
+tab$"Sample name" <- paste(tab$Type, tab$rep, sep = "_")
+tab <- tab[tab$Time < 24 & tab$Time > 1, ]
+```
+
+## ARE calculation
+```{r}
+ID <- unique(tab$"Sample name")
+
+out <- lapply(ID, function(i) {
+  idx <- tab[tab$`Sample name` == i & tab$Time != "0", ]
+  x <- idx$Time
+  y <- idx$value
+  auc <- area_under_curve(x, y, method = "trapezoid")
+
+  tab <- data.frame(ID = i, Auc = auc, check.names = F, stringsAsFactors = F)
+  return(tab)
+})
+
+auc <- do.call(rbind, out)
+idx <- match(auc$ID, tab$"Sample name")
+auc <- cbind(auc, tab[idx, ])
+
+# calculating average for all treatments
+AUC_sum <- auc %>%
+  group_by(Type) %>%
+  summarize(
+    mean = mean(Auc),
+    sd = sd(Auc)
+  )
+```
+
+## ggplot factor setup and label formatting
+```{r}
+auc$treatment <- factor(auc$treatment,
+                        levels = c("Control", "Low", "Medium", "High"))
+auc <- na.omit(auc)
+auc$Bacteria <-
+  factor(auc$Bacteria, levels = c("wild-type", "ΔndhL", "VC"))
+
+font_add("Arial", "/System/Library/Fonts/Arial.ttf")
+showtext_auto()
+
+bact_labeller <- function(variable, value) {
+  value <- as.character(value)
+  
+  
+  if (value == "WT") {
+    return("WT")
+  } else if (value == "ΔndhL") {
+    return(expression(italic(Delta) * ndhL))
+  } else if (value == "VC") {
+    return("VC")
+  }
+}
+```
+
+## Plot data
+```{r}
+p3 <- ggplot(auc, aes(y = Auc, x = treatment, fill = Bacteria)) +
+  stat_summary(
+    fun = mean,
+    geom = "bar",
+    color = "black",
+    width = 0.5,
+    position = position_dodge(width = 0.6)
+  ) +
+  stat_summary(
+    fun.min = function(x) mean(x) - sd(x),
+    fun.max = function(x) mean(x) + sd(x),
+    geom = "errorbar",
+    width = 0.2,
+    position = position_dodge(width = 0.6)
+  ) +
+  geom_jitter(shape = 21, size = 1.5, width = 0.15, alpha = 0.8, fill = "white") +
+  scale_y_continuous(limits = c(0, 13), expand = c(0, 0.01)) +
+  scale_fill_manual(values = c("#008B8B", "#6B8E23", "#EE6363")) +
+  facet_grid(~Bacteria, scales = "free_x", space = "free_x") +
+  theme_set(theme_bw(base_family = "Arial")) +
+  theme_bw() +
+  labs(x = "", y = "Bacterial growth (AUC)") +
+  theme(
+    axis.text.x = element_text(
+      colour = "black", size = 12,
+      angle = 90, hjust = 1, vjust = 0.5,
+    ),
+    axis.text.y = element_text(colour = "black", size = 12),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 15),
+    strip.text = element_text(size = 15, face = "bold"),
+    legend.title = element_text(size = 9)
+  )
+
+p3
+```
+## Save plot
+```{r}
+ggsave(p3, file = paste(fig_dir, "tolerance_auc.pdf", sep = "/"), width = 8, height = 4, bg = "transparent")
+```
+
+## dunnett test
+```{r}
+dunnett_by_bacteria <- function(df, bact_level) {
+  idx <- df$Bacteria == bact_level
+
+  fx <- factor(
+    df$treatment[idx],
+    levels = c("Control", "Low", "medium", "High")
+  )
+  vx <- df$Auc[idx]
+
+  fit <- aov(vx ~ fx)
+  res <- glht(fit, linfct = mcp(fx = "Dunnett"))
+  summary(res)
+}
+```
+
+### dunnett test for wild-type
+```{r}
+dunnett_by_bacteria(auc, "wild-type")
+```
+
+### dunnett test for ΔndhL
+```{r}
+dunnett_by_bacteria(auc, "ΔndhL")
+```
+
+### dunnett test for VC
+```{r}
+dunnett_by_bacteria(auc, "VC")
+```

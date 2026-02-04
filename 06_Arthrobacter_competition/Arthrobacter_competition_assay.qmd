@@ -1,0 +1,175 @@
+---
+title: "Arthrobacter competition assay"
+subtitle: "Shimasai et al. Nicotine SynComs"
+author: "Tomohisa Shimasaki"
+format:
+  html: default
+  pdf: default
+---
+
+# Setup
+```{r setup}
+# Global setup
+rm(list = ls())
+options(warn = -1)
+
+library(ggplot2, quietly = T, warn.conflicts = F)
+library(reshape2, quietly = T, warn.conflicts = F)
+library(dplyr, quietly = T, warn.conflicts = F)
+library(tidyverse, quietly = T, warn.conflicts = F)
+library(readxl, quietly = T, warn.conflicts = F)
+library(here, quietly = T, warn.conflicts = F)
+library(emmeans, quietly = T, warn.conflicts = F)
+```
+
+# Path
+```{r path}
+data_dir <- here("06_Arthrobacter_competition", "input")
+fig_dir <- here("06_Arthrobacter_competition", "output")
+```
+
+# Load Data
+```{r load-data}
+tab <- read_excel(file.path(data_dir, "CFU_competitiom_asssy.xlsx"))
+```
+
+# Visualization of Competition Assay Results
+## ratio calculation
+```{r}
+tab$WT_CFU  <- tab$Total_CFU-tab$Counterpart_CFU
+
+#
+tab[tab <= 0] <- NA
+tab    <- na.omit(tab)
+
+tab$WT  <- tab$WT_CFU/tab$Total_CFU
+tab$Counter  <- tab$Counterpart_CFU/tab$Total_CFU
+```
+
+## Calculate mean and standard error for percentages
+```{r}
+tab_plot <- tab %>%
+  pivot_longer(
+    cols = -c(
+      treatment, Sample, Bacteria,
+      `Root weight (mg)`,
+      Total_CFU,
+      Plant,
+      `plated volume (μL)`,
+      batch,
+      Rep,
+      Counterpart_CFU,
+      WT_CFU
+    ),
+    names_to = "variable",
+    values_to = "value"
+  ) %>%
+  select(treatment, Sample, Bacteria, Plant, variable, value)
+
+# Calculating treatment-wise summary statistics (mean ± SE)
+summary_tab <- tab_plot %>%
+  group_by(treatment, variable) %>%
+  summarise(
+    mean = mean(value, na.rm = TRUE),
+    se   = sd(value, na.rm = TRUE) / sqrt(sum(!is.na(value))),
+    .groups = 'drop'
+  ) %>%
+  mutate(
+    ymin = mean - se,
+    ymax = mean + se
+  )
+
+# Adjust error bars for the Counter group
+summary_tab$ymin[summary_tab$variable == "Counter"] <- 
+  1 - summary_tab$se[summary_tab$variable == "Counter"]
+
+summary_tab$ymax[summary_tab$variable == "Counter"] <- 
+  1 + summary_tab$se[summary_tab$variable == "Counter"]
+```
+
+## ggplot factor setup and label formatting
+```{r}
+summary_tab$genotype   <-  str_replace(summary_tab$treatment, "_.*", "")
+summary_tab$bacteria   <-  str_replace(summary_tab$treatment, ".*_", "")
+
+summary_tab$treatment  <- factor(summary_tab$treatment, levels=c("WT_VC", "WT_ndhL", "ERF_VC", "ERF_ndhL"))
+summary_tab$genotype  <- factor(summary_tab$genotype, levels=c("WT", "ERF"))
+summary_tab$bacteria  <- factor(summary_tab$bacteria, levels=c("ndhL", "VC"))
+summary_tab$variable  <- factor(summary_tab$variable, levels=c("Counter", "WT"))
+```
+
+## Plot data
+```{r}
+p1 <- ggplot(summary_tab, aes(x = bacteria, y = mean, fill = variable)) +
+  geom_bar(stat = "identity", position = "fill", color="black") +
+  geom_errorbar(aes(ymin = ymin, ymax = ymax), width = 0.15) +
+  scale_y_continuous(expand = c(0,0), limits = c(0, 1.2), breaks=seq(0,1, length=5)) +
+  facet_grid(.~genotype) +
+  theme_classic(base_size = 20) +
+  theme(axis.ticks = element_line(colour = "black"), 
+        axis.text.x = element_text(size= 15, colour = "black"),
+        axis.text.y = element_text(size= 15, colour = "black"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size= 18, colour = "black"),
+        strip.text.x = element_text(size= 15, colour = "black"),
+        legend.position = "right") +
+  labs(y = "Fraction of total CFUs")
+
+p1
+```
+
+## Save plot
+```{r}
+ggsave(p1, file = paste(fig_dir, "Arthrobacter_competition_CFU.pdf", sep = "/"), width = 8, height = 4, bg = "transparent")
+```
+
+
+# Statistic analysis
+## calculating competition index (CI) and ggplot factor setup
+```{r}
+tab$logCI <- log10(tab$WT_CFU / tab$Counterpart_CFU)
+
+tab$Bacteria  <- factor(tab$Bacteria, levels=c("ΔndhL", "VC"))
+tab$Plant  <- factor(tab$Plant, levels=c("wild-type", "ERF189/199"))
+
+```
+		
+## Plot data		
+```{r}
+p2 <- ggplot(tab, aes(x = Bacteria, y = logCI)) +
+  geom_point(aes(color = Bacteria), size = 1) +
+  geom_hline(yintercept = 0, 
+             linetype = "dashed", 
+             linewidth = 0.8, 
+             color = "black") +
+  facet_grid(. ~ Plant) +
+  scale_color_manual(values = c("#6B8E23", "#EE6363")) +
+  scale_y_continuous(limits = c(-2, 2)) +
+  theme_classic(base_size = 20) +
+  theme(axis.ticks = element_line(colour = "black"), 
+        axis.text.x = element_text(size= 15, colour = "black"),
+        axis.text.y = element_text(size= 15, colour = "black"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size= 18, colour = "black"),
+        strip.text.x = element_text(size= 15, colour = "black"),
+        legend.position = "right") +
+  labs(y = "logCI value")
+
+p2
+```
+  
+## Save plot
+```{r}
+ggsave(p2, file = paste(fig_dir, "Arthrobacter_logCI.pdf", sep = "/"), width = 5, height = 4, bg = "transparent")
+```
+
+## Two-way ANOVA of log competition index followed by emmeans tests
+```{r}
+model <- aov(logCI ~ Bacteria * Plant, data = tab)
+summary(model)
+emm <- emmeans(model, ~ Bacteria * Plant)
+
+test(emm, null = 0, adjust = "holm")
+```
+  
+  

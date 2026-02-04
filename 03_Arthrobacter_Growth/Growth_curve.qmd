@@ -1,0 +1,117 @@
+---
+title: "Arthrobacyter growth in nicotine-medium"
+subtitle: "Shimasai et al. Nicotine SynComs"
+author: "Tomohisa Shimasaki"
+format:
+  html: default
+  pdf: default
+---
+
+# Setup
+```{r setup}
+# Global setup
+rm(list = ls())
+options(warn = -1)
+
+library(stringr, quietly = T, warn.conflicts = F)
+library(ggplot2, quietly = T, warn.conflicts = F)
+library(reshape2, quietly = T, warn.conflicts = F)
+library(dplyr, quietly = T, warn.conflicts = F)
+library(tidyverse, quietly = T, warn.conflicts = F)
+library(readxl, quietly = T, warn.conflicts = F)
+library(here, quietly = T, warn.conflicts = F)
+```
+
+# Path
+```{r path}
+data_dir <- here("03_Arthrobacter_Growth", "input")
+fig_dir <- here("03_Arthrobacter_Growth", "output")
+```
+
+# Load Data
+```{r load-data}
+tab <- read_excel(file.path(data_dir, "Bacterial_growth_D600.xlsx"))
+meta <- read_excel(file.path(data_dir, "sample_list.xlsx"))
+```
+
+
+# Data formatting
+```{r}
+tab <- melt(tab)
+colnames(tab) <- c("ID", "Time", "OD")
+
+idx <- match(tab$ID, meta$Sample)
+tab <- cbind(tab, meta[idx, ])
+
+
+tab_sum <- tab %>%
+  group_by(treatment, Time) %>%
+  summarise(
+    ave = mean(OD),
+    sd = sd(OD)
+  )
+
+
+idx <- str_split(tab_sum$treatment, pattern = "_", simplify = TRUE)
+tab_sum$bacteria <- idx[, 1]
+tab_sum$medium <- idx[, 2]
+```
+
+# Plot
+## Plot glucose
+```{r}
+p1 <- ggplot(tab_sum[tab_sum$medium == "glucose", ], aes(x = Time, y = ave, group = treatment, color = treatment)) +
+  geom_point(size = 3) +
+  theme_classic() +
+  geom_line(size = 1.5) +
+  geom_errorbar(aes(ymin = ave - sd, ymax = ave + sd, width = 0.1)) +
+  scale_y_continuous(breaks = seq(0, 1, length = 5), limits = c(0, 1)) +
+  scale_color_manual(values = c("#EE6363", "#6B8E23", "#008B8B")) +
+  labs(x = "Time (h)", y = "") +
+  theme(
+    axis.text.x = element_text(size = 18, colour = "black"),
+    axis.text.y = element_text(size = 18, colour = "black"),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_blank(),
+    legend.position = "right",
+    panel.border = element_rect(fill = NA, size = 2),
+    aspect.ratio = 0.6,
+    axis.line = element_line(colour = "black", size = 1)
+  )
+
+p1
+```
+
+## Save plot
+```{r}
+ggsave(p1, file = paste(fig_dir, "Arthrobacter_growth_glucose.pdf", sep = "/"), width = 8, height = 4, bg = "transparent")
+```
+
+## Plot nicotine
+```{r}
+p2 <- ggplot(tab_sum[tab_sum$medium == "nicotine", ], aes(x = Time, y = ave, group = treatment, color = treatment)) +
+  geom_point(size = 3) +
+  theme_classic() +
+  geom_line(size = 1.5) +
+  geom_errorbar(aes(ymin = ave - sd, ymax = ave + sd, width = 0.1)) +
+  scale_y_continuous(breaks = seq(0, 1, length = 5), limits = c(0, 1)) +
+  scale_color_manual(values = c("#EE6363", "#6B8E23", "#008B8B")) +
+  labs(x = "Time (h)", y = "") +
+  theme(
+    axis.text.x = element_text(size = 18, colour = "black"),
+    axis.text.y = element_text(size = 18, colour = "black"),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_blank(),
+    legend.position = "right",
+    panel.border = element_rect(fill = NA, size = 2),
+    aspect.ratio = 0.6,
+    axis.line = element_line(colour = "black", size = 1)
+  )
+
+p2
+```
+
+## Save plot
+```{r}
+ggsave(p2, file = paste(fig_dir, "Arthrobacter_growth_nicotine.pdf", sep = "/"), width = 8, height = 4, bg = "transparent")
+```
