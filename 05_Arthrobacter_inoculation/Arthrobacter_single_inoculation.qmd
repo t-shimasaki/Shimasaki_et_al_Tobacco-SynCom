@@ -1,5 +1,5 @@
 ---
-title: "Arthrobacyter inoculation in mono-association system"
+title: "Arthrobacter inoculation in mono-association system"
 subtitle: "Shimasai et al. Tobacco SynCom"
 author: "Tomohisa Shimasaki"
 format:
