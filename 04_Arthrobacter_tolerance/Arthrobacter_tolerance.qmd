@@ -1,5 +1,5 @@
 ---
-title: "Arthrobacyter tolerance to nicotine"
+title: "Arthrobacter tolerance to nicotine"
 subtitle: "Shimasai et al. Tobacco SynCom"
 author: "Tomohisa Shimasaki"
 format:
