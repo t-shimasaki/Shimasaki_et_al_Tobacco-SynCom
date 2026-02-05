@@ -82,7 +82,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Absolute quantification of Arthrobacter by dPCR</h1>
-<p class="subtitle lead">Shimasai et al.&nbsp;Nicotine SynComs</p>
+<p class="subtitle lead">Shimasai et al.&nbsp;Tobacco SynCom</p>
 </div>
 
 
@@ -129,7 +129,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl, <span class="at">quietly =</span> T, <span class="at">warn.conflicts =</span> F)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(here, <span class="at">quietly =</span> T, <span class="at">warn.conflicts =</span> F)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>here() starts at /Users/tomohisa/Desktop/Shimasaki_et_al_2026</code></pre>
+<pre><code>here() starts at /Users/tomohisa/Desktop/Shimasaki_et_al_Tobacco_SynCom</code></pre>
 </div>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(effectsize, <span class="at">quietly =</span> T, <span class="at">warn.conflicts =</span> F)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -150,40 +150,46 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="ggplot-factor-setup-and-label-formatting" class="level1">
 <h1>ggplot factor setup and label formatting</h1>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>tab<span class="sc">$</span>cp_mg    <span class="ot">&lt;-</span>  tab<span class="sc">$</span>Copy<span class="sc">/</span>tab<span class="sc">$</span><span class="st">`</span><span class="at">Weight (mg)</span><span class="st">`</span></span>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>tab<span class="sc">$</span>cp_mg <span class="ot">&lt;-</span> tab<span class="sc">$</span>Copy <span class="sc">/</span> tab<span class="sc">$</span><span class="st">`</span><span class="at">Weight (mg)</span><span class="st">`</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>tab<span class="sc">$</span>treatment  <span class="ot">&lt;-</span>  <span class="fu">factor</span>(tab<span class="sc">$</span>treatment, <span class="at">levels=</span><span class="fu">c</span>(<span class="st">"WT_A02"</span>,<span class="st">"WT_ndhL"</span>, <span class="st">"WT_Con"</span>,</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>                                                    <span class="st">"ERF_A02"</span>, <span class="st">"ERF_ndhL"</span>, <span class="st">"ERF_Con"</span>))</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>colors <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">SynCom=</span><span class="fu">c</span>(<span class="st">"WT_WT"</span>, <span class="st">"WT_ndhL"</span>, <span class="st">"WT_Con"</span>, <span class="st">"ERF_WT"</span>, <span class="st">"ERF_ndhL"</span>, <span class="st">"ERF_Con"</span>),</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>                     <span class="at">color=</span><span class="fu">c</span>(<span class="st">"#008B8B"</span>, <span class="st">"#6B8E23"</span>, <span class="st">"#EE6363"</span>, <span class="st">"#6CA6CD"</span>, <span class="st">"#8FBC8F"</span>, <span class="st">"#EEA9B8"</span>))</span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>tab<span class="sc">$</span><span class="st">`</span><span class="at">Sample name</span><span class="st">`</span>      <span class="ot">&lt;-</span> <span class="fu">factor</span>(tab<span class="sc">$</span><span class="st">`</span><span class="at">Sample name</span><span class="st">`</span>, <span class="at">levels=</span>colors<span class="sc">$</span>SynCom)</span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>tab<span class="sc">$</span>SynCom     <span class="ot">&lt;-</span> <span class="fu">factor</span>(tab<span class="sc">$</span>SynCom, <span class="at">levels=</span><span class="fu">c</span>(<span class="st">"wildSC"</span>, <span class="st">"ndhLSC"</span>, <span class="st">"conSC"</span>)) </span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>tab<span class="sc">$</span>Plant      <span class="ot">&lt;-</span> <span class="fu">factor</span>(tab<span class="sc">$</span>Plant, <span class="at">levels=</span><span class="fu">c</span>(<span class="st">"Wild-type"</span>, <span class="st">"erf189"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>tab<span class="sc">$</span>treatment <span class="ot">&lt;-</span> <span class="fu">factor</span>(tab<span class="sc">$</span>treatment, <span class="at">levels =</span> <span class="fu">c</span>(</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"WT_A02"</span>, <span class="st">"WT_ndhL"</span>, <span class="st">"WT_Con"</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"ERF_A02"</span>, <span class="st">"ERF_ndhL"</span>, <span class="st">"ERF_Con"</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>))</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>colors <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">SynCom =</span> <span class="fu">c</span>(<span class="st">"WT_WT"</span>, <span class="st">"WT_ndhL"</span>, <span class="st">"WT_Con"</span>, <span class="st">"ERF_WT"</span>, <span class="st">"ERF_ndhL"</span>, <span class="st">"ERF_Con"</span>),</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">color =</span> <span class="fu">c</span>(<span class="st">"#008B8B"</span>, <span class="st">"#6B8E23"</span>, <span class="st">"#EE6363"</span>, <span class="st">"#6CA6CD"</span>, <span class="st">"#8FBC8F"</span>, <span class="st">"#EEA9B8"</span>)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>tab<span class="sc">$</span><span class="st">`</span><span class="at">Sample name</span><span class="st">`</span> <span class="ot">&lt;-</span> <span class="fu">factor</span>(tab<span class="sc">$</span><span class="st">`</span><span class="at">Sample name</span><span class="st">`</span>, <span class="at">levels =</span> colors<span class="sc">$</span>SynCom)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>tab<span class="sc">$</span>SynCom <span class="ot">&lt;-</span> <span class="fu">factor</span>(tab<span class="sc">$</span>SynCom, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"wildSC"</span>, <span class="st">"ndhLSC"</span>, <span class="st">"conSC"</span>))</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>tab<span class="sc">$</span>Plant <span class="ot">&lt;-</span> <span class="fu">factor</span>(tab<span class="sc">$</span>Plant, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Wild-type"</span>, <span class="st">"erf189"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <section id="ggplot-factor-setup-and-label-formatting-1" class="level2">
 <h2 class="anchored" data-anchor-id="ggplot-factor-setup-and-label-formatting-1">ggplot factor setup and label formatting</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>p1  <span class="ot">&lt;-</span>   <span class="fu">ggplot</span>(tab, <span class="fu">aes</span>(<span class="at">x=</span> SynCom, <span class="at">y=</span>cp_mg)) <span class="sc">+</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="fu">aes</span>(<span class="at">fill=</span>treatment), <span class="at">outlier.shape =</span> <span class="cn">NA</span>) <span class="sc">+</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="at">alpha=</span><span class="fl">0.8</span>, <span class="at">width=</span><span class="fl">0.1</span>, <span class="at">size=</span><span class="fl">1.2</span>) <span class="sc">+</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>         <span class="co">#stat_summary(fun = mean, geom = "crossbar", size = 0.4, width = 0.3, position=position_dodge(0.9)) +</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> colors<span class="sc">$</span>color) <span class="sc">+</span></span>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(tab, <span class="fu">aes</span>(<span class="at">x =</span> SynCom, <span class="at">y =</span> cp_mg)) <span class="sc">+</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="fu">aes</span>(<span class="at">fill =</span> treatment), <span class="at">outlier.shape =</span> <span class="cn">NA</span>) <span class="sc">+</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="at">alpha =</span> <span class="fl">0.8</span>, <span class="at">width =</span> <span class="fl">0.1</span>, <span class="at">size =</span> <span class="fl">1.2</span>) <span class="sc">+</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># stat_summary(fun = mean, geom = "crossbar", size = 0.4, width = 0.3, position=position_dodge(0.9)) +</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> colors<span class="sc">$</span>color) <span class="sc">+</span></span>
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>(<span class="at">base_size =</span> <span class="dv">15</span>) <span class="sc">+</span></span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">120000</span>)) <span class="sc">+</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>                     <span class="co">#labels = scales::label_scientific(notation = "E")) +</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(.<span class="sc">~</span>Plant) <span class="sc">+</span></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y=</span><span class="st">"Abusolute abundance </span><span class="sc">\n</span><span class="st"> (copies/mg root)"</span>, <span class="at">x=</span><span class="st">""</span>) <span class="sc">+</span></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.ticks=</span><span class="fu">element_line</span>(<span class="at">colour =</span> <span class="st">"black"</span>), </span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text.x =</span><span class="fu">element_blank</span>(),</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.text.y =</span><span class="fu">element_text</span>(<span class="at">size=</span> <span class="dv">10</span>, <span class="at">colour =</span> <span class="st">"black"</span>),</span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.x =</span> <span class="fu">element_text</span>(<span class="at">size=</span> <span class="dv">12</span>, <span class="at">colour =</span> <span class="st">"black"</span>),</span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size=</span> <span class="dv">12</span>, <span class="at">colour =</span> <span class="st">"black"</span>),</span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>        <span class="at">legend.position =</span> <span class="st">"right"</span>,</span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>        <span class="at">legend.text =</span> <span class="fu">element_text</span>(<span class="at">size=</span> <span class="dv">8</span>, <span class="at">colour =</span> <span class="st">"black"</span>),</span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>        <span class="at">strip.text.x =</span> <span class="fu">element_blank</span>())</span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>p1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="co"># labels = scales::label_scientific(notation = "E")) +</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(. <span class="sc">~</span> Plant) <span class="sc">+</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">y =</span> <span class="st">"Abusolute abundance </span><span class="sc">\n</span><span class="st"> (copies/mg root)"</span>, <span class="at">x =</span> <span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="st">"black"</span>),</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.x =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">10</span>, <span class="at">colour =</span> <span class="st">"black"</span>),</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>, <span class="at">colour =</span> <span class="st">"black"</span>),</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>, <span class="at">colour =</span> <span class="st">"black"</span>),</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"right"</span>,</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">8</span>, <span class="at">colour =</span> <span class="st">"black"</span>),</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">strip.text.x =</span> <span class="fu">element_blank</span>()</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>p1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -202,7 +208,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="two-way-anova-with-tukeys-honest-significant-difference-hsd-test" class="level2">
 <h2 class="anchored" data-anchor-id="two-way-anova-with-tukeys-honest-significant-difference-hsd-test">two-way ANOVA with Tukey’s honest significant difference (HSD) test</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>model  <span class="ot">&lt;-</span> <span class="fu">aov</span>(cp_mg <span class="sc">~</span> SynCom<span class="sc">*</span>Plant, <span class="at">data=</span>tab)</span>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>model <span class="ot">&lt;-</span> <span class="fu">aov</span>(cp_mg <span class="sc">~</span> SynCom <span class="sc">*</span> Plant, <span class="at">data =</span> tab)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>Turkey <span class="ot">&lt;-</span> <span class="fu">TukeyHSD</span>(model)</span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>

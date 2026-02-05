@@ -1,0 +1,134 @@
+---
+title: "Phylogenetic tree of Arthrobacter pangenome"
+subtitle: "Shimasai et al. Tobacco SynComs"
+author: "Tomohisa Shimasaki"
+format:
+  html: default
+  pdf: default
+---
+
+# Setup
+```{r setup}
+# Global setup
+rm(list = ls())
+options(warn = -1)
+
+library(stringr, quietly = T, warn.conflicts = F)
+library(ggplot2, quietly = T, warn.conflicts = F)
+library(rio, quietly = T, warn.conflicts = F)
+library(dplyr, quietly = T, warn.conflicts = F)
+library(tidyverse, quietly = T, warn.conflicts = F)
+library(readxl, quietly = T, warn.conflicts = F)
+library(here, quietly = T, warn.conflicts = F)
+library(ape, quietly = T, warn.conflicts = F)
+library(ggtree, quietly = T, warn.conflicts = F)
+library(ggnewscale, quietly = T, warn.conflicts = F)
+library(ggtreeExtra, quietly = T, warn.conflicts = F)
+library(treeio, quietly = T, warn.conflicts = F)
+library(reshape2, quietly = T, warn.conflicts = F)
+```
+
+# Path
+```{r path}
+data_dir <- here("01_phylogenetic_tree", "input")
+fig_dir <- here("01_phylogenetic_tree", "output")
+```
+
+# Load Data
+```{r load-data}
+tree <- read.tree(file.path(data_dir, "SpeciesTree_rooted_node_labels.txt"))
+strain <- read_excel(file.path(data_dir, "phylogenetic_tree_strain_metadata.xlsx"))
+nic <- read_excel(file.path(data_dir, "Identity_nic_gene_cluster.xlsx"))
+```
+
+# Plot phylogenetic tree
+## Simple plot
+```{r}
+plot1 <- ggtree(tree) +
+  geom_text2(aes(subset = !isTip, label = node), hjust = -.3) +
+  geom_tiplab()
+plot1
+```
+
+## reroot tree
+```{r}
+tree2 <- root(tree, node = 63, edgelabel = TRUE)
+p1 <- ggtree(tree2, size = 0.5, branch.length = "TRUE") +
+  xlim(NA, 0.8)
+```
+
+## Add heat map for nic gene identity
+```{r}
+heat <- melt(nic)
+
+p2 <- p1 +
+  geom_fruit(
+    data = heat,
+    geom = geom_tile,
+    mapping = aes(x = variable, y = strain, fill = value),
+    width = 0.01,
+    color = "black",
+    pwidth = 0.3,
+    offset = 0.4,
+    size = 0.3
+  ) +
+  scale_fill_gradientn(colors = c("white", "#16537e"), limits = c(min(20), max(100))) +
+  new_scale_fill()
+```
+  
+## Add nic gene locus
+```{r}
+p3 <- p2 +
+  geom_fruit(
+    data = strain,
+    geom = geom_tile,
+    mapping = aes(x = type, y = Strain, fill = Locus),
+    width = 0.01,
+    color = "black",
+    offset = 0.05,
+    size = 0.3
+  ) +
+  scale_fill_manual(values = c("#44989C", "white", "#DA668A")) +
+  new_scale_fill()
+```
+
+## Add idolation environment
+```{r}
+p4 <- p3 +
+  geom_fruit(
+    data = strain,
+    geom = geom_tile,
+    mapping = aes(x = type, y = Strain, fill = Isolation),
+    width = 0.01,
+    pwidth = 0.1,
+    offset = 0.04,
+    size = 0.3
+  ) +
+  scale_fill_manual(values = c("#030303", "white", "grey")) +
+  new_scale_fill()
+```
+## Add tip labels and plot data
+```{r, fig.width=8, fig.height=8, dpi=300, out.width="100%", fig.align="center"}
+is.waive <- function(x) inherits(x, "waiver")
+
+p5 <- p4 %<+% strain +
+  geom_tiplab(
+    aes(color = Study),
+    align = TRUE, linetype = "dashed",
+    linewidth = 0.2, offset = 0.03, size = 4
+  ) +
+  geom_tippoint(
+    aes(fill = nic),
+    shape = 21, size = 3, color = "black"
+  ) +
+  scale_color_manual(values = c("black", "#fcba03")) +
+  scale_fill_manual(values = c("white", "red")) +
+  theme(legend.position = "right")
+
+p5
+```
+
+## Save plot
+```{r}
+ggsave(p5, file = paste(fig_dir, "Arthrobacter_pangenome_phylogenetic_tree.pdf", sep = "/"), width = 10, height = 10, bg = "transparent")
+```

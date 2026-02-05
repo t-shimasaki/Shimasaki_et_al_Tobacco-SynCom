@@ -1,6 +1,6 @@
 ---
 title: "Arthrobacter competition assay"
-subtitle: "Shimasai et al. Nicotine SynComs"
+subtitle: "Shimasai et al. Tobacco SynCom"
 author: "Tomohisa Shimasaki"
 format:
   html: default

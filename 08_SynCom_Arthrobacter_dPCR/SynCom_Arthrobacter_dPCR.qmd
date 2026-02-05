@@ -1,6 +1,6 @@
 ---
 title: "Absolute quantification of Arthrobacter by dPCR"
-subtitle: "Shimasai et al. Nicotine SynComs"
+subtitle: "Shimasai et al. Tobacco SynCom"
 author: "Tomohisa Shimasaki"
 format:
   html: default
@@ -34,39 +34,45 @@ tab <- read_excel(file.path(data_dir, "SynCom_Arthrobacter_dPCR.xlsx"))
 
 # ggplot factor setup and label formatting
 ```{r}
-tab$cp_mg    <-  tab$Copy/tab$`Weight (mg)`
+tab$cp_mg <- tab$Copy / tab$`Weight (mg)`
 
-tab$treatment  <-  factor(tab$treatment, levels=c("WT_A02","WT_ndhL", "WT_Con",
-                                                    "ERF_A02", "ERF_ndhL", "ERF_Con"))
+tab$treatment <- factor(tab$treatment, levels = c(
+  "WT_A02", "WT_ndhL", "WT_Con",
+  "ERF_A02", "ERF_ndhL", "ERF_Con"
+))
 
-colors <- data.frame(SynCom=c("WT_WT", "WT_ndhL", "WT_Con", "ERF_WT", "ERF_ndhL", "ERF_Con"),
-                     color=c("#008B8B", "#6B8E23", "#EE6363", "#6CA6CD", "#8FBC8F", "#EEA9B8"))
-tab$`Sample name`      <- factor(tab$`Sample name`, levels=colors$SynCom)
+colors <- data.frame(
+  SynCom = c("WT_WT", "WT_ndhL", "WT_Con", "ERF_WT", "ERF_ndhL", "ERF_Con"),
+  color = c("#008B8B", "#6B8E23", "#EE6363", "#6CA6CD", "#8FBC8F", "#EEA9B8")
+)
+tab$`Sample name` <- factor(tab$`Sample name`, levels = colors$SynCom)
 
-tab$SynCom     <- factor(tab$SynCom, levels=c("wildSC", "ndhLSC", "conSC")) 
-tab$Plant      <- factor(tab$Plant, levels=c("Wild-type", "erf189"))
+tab$SynCom <- factor(tab$SynCom, levels = c("wildSC", "ndhLSC", "conSC"))
+tab$Plant <- factor(tab$Plant, levels = c("Wild-type", "erf189"))
 ```
 
 ## ggplot factor setup and label formatting
 ```{r}
-p1  <-   ggplot(tab, aes(x= SynCom, y=cp_mg)) +
-  geom_boxplot(aes(fill=treatment), outlier.shape = NA) +
-  geom_jitter(alpha=0.8, width=0.1, size=1.2) +
-         #stat_summary(fun = mean, geom = "crossbar", size = 0.4, width = 0.3, position=position_dodge(0.9)) +
-        scale_fill_manual(values = colors$color) +
+p1 <- ggplot(tab, aes(x = SynCom, y = cp_mg)) +
+  geom_boxplot(aes(fill = treatment), outlier.shape = NA) +
+  geom_jitter(alpha = 0.8, width = 0.1, size = 1.2) +
+  # stat_summary(fun = mean, geom = "crossbar", size = 0.4, width = 0.3, position=position_dodge(0.9)) +
+  scale_fill_manual(values = colors$color) +
   theme_classic(base_size = 15) +
   scale_y_continuous(limits = c(0, 120000)) +
-                     #labels = scales::label_scientific(notation = "E")) +
-  facet_grid(.~Plant) +
-  labs(y="Abusolute abundance \n (copies/mg root)", x="") +
-  theme(axis.ticks=element_line(colour = "black"), 
-        axis.text.x =element_blank(),
-        axis.text.y =element_text(size= 10, colour = "black"),
-        axis.title.x = element_text(size= 12, colour = "black"),
-        axis.title.y = element_text(size= 12, colour = "black"),
-        legend.position = "right",
-        legend.text = element_text(size= 8, colour = "black"),
-        strip.text.x = element_blank())
+  # labels = scales::label_scientific(notation = "E")) +
+  facet_grid(. ~ Plant) +
+  labs(y = "Abusolute abundance \n (copies/mg root)", x = "") +
+  theme(
+    axis.ticks = element_line(colour = "black"),
+    axis.text.x = element_blank(),
+    axis.text.y = element_text(size = 10, colour = "black"),
+    axis.title.x = element_text(size = 12, colour = "black"),
+    axis.title.y = element_text(size = 12, colour = "black"),
+    legend.position = "right",
+    legend.text = element_text(size = 8, colour = "black"),
+    strip.text.x = element_blank()
+  )
 p1
 ```
 
@@ -77,7 +83,7 @@ ggsave(p1, file = paste(fig_dir, "SynCom_Arthrobacter_dPCR.pdf", sep = "/"), wid
 
 ## two-way ANOVA with Tukey’s honest significant difference (HSD) test
 ```{r}
-model  <- aov(cp_mg ~ SynCom*Plant, data=tab)
+model <- aov(cp_mg ~ SynCom * Plant, data = tab)
 Turkey <- TukeyHSD(model)
 
 summary(model)

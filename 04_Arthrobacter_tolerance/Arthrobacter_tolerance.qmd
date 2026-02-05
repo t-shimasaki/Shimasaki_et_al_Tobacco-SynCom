@@ -1,6 +1,6 @@
 ---
 title: "Arthrobacyter tolerance to nicotine"
-subtitle: "Shimasai et al. Nicotine SynComs"
+subtitle: "Shimasai et al. Tobacco SynCom"
 author: "Tomohisa Shimasaki"
 format:
   html: default
@@ -191,7 +191,8 @@ AUC_sum <- auc %>%
 ## ggplot factor setup and label formatting
 ```{r}
 auc$treatment <- factor(auc$treatment,
-                        levels = c("Control", "Low", "Medium", "High"))
+  levels = c("Control", "Low", "Medium", "High")
+)
 auc <- na.omit(auc)
 auc$Bacteria <-
   factor(auc$Bacteria, levels = c("wild-type", "ΔndhL", "VC"))
@@ -201,8 +202,8 @@ showtext_auto()
 
 bact_labeller <- function(variable, value) {
   value <- as.character(value)
-  
-  
+
+
   if (value == "WT") {
     return("WT")
   } else if (value == "ΔndhL") {
